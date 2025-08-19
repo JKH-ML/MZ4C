@@ -1,0 +1,42 @@
+{
+  "name": "mz4c",
+  "version": "1.0.0",
+  "description": "��#\u0000 \u0000M\u0000Z\u00004\u0000C\u0000\r\u0000 \u0000",
+  "main": "index.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JKH-ML/MZ4C.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/JKH-ML/MZ4C/issues"
+  },
+  "homepage": "https://github.com/JKH-ML/MZ4C#readme",
+  "dependencies": {
+    "@types/node": "^24.3.0",
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "autoprefixer": "^10.4.21",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "eslint": "^9.33.0",
+    "eslint-config-next": "^15.4.7",
+    "lucide-react": "^0.540.0",
+    "next": "^15.4.7",
+    "postcss": "^8.5.6",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "tailwind-merge": "^3.3.1",
+    "tailwindcss": "^4.1.12",
+    "typescript": "^5.9.2"
+  }
+}
