@@ -3,16 +3,10 @@
 import { useState } from 'react'
 import { CharacterSearch } from '@/components/character-search'
 import { MemeGenerator } from '@/components/meme-generator'
-
-interface Character {
-  ocid: string
-  name: string
-  guild: string
-  baseImageUrl: string
-}
+import type { CharacterData } from '@/lib/maplestory-api'
 
 export default function Home() {
-  const [character, setCharacter] = useState<Character | null>(null)
+  const [character, setCharacter] = useState<CharacterData | null>(null)
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4">
