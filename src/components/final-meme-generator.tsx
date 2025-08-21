@@ -13,6 +13,12 @@ interface MemeSlot {
     showName: boolean
     showGuild: boolean
     guild: string
+    cropArea: {
+      x: number
+      y: number
+      width: number
+      height: number
+    }
   }
   backgroundColor: string
 }
