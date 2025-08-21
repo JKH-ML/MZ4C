@@ -19,6 +19,12 @@ export interface CharacterData {
   showName: boolean
   showGuild: boolean
   size: number
+  cropArea: {
+    x: number
+    y: number
+    width: number
+    height: number
+  }
 }
 
 const API_BASE_URL = 'https://open.api.nexon.com/maplestory/v1'
@@ -98,6 +104,12 @@ export class MapleStoryAPI {
         showName: true,
         showGuild: true,
         size: 800,
+        cropArea: {
+          x: 115,
+          y: 122,
+          width: 60,
+          height: 60
+        }
       }
     } catch (error) {
       console.error('캐릭터 검색 중 오류:', error)

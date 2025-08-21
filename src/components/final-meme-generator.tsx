@@ -1,11 +1,9 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Select } from '@/components/ui/select'
 import { Download, Image as ImageIcon, Loader2 } from 'lucide-react'
-import { LAYOUT_OPTIONS } from '@/lib/meme-options'
 
 interface MemeSlot {
   character: {
@@ -24,9 +22,15 @@ interface FinalMemeGeneratorProps {
 }
 
 export function FinalMemeGenerator({ memeSlots }: FinalMemeGeneratorProps) {
-  const [layout, setLayout] = useState('horizontal')
   const [isGenerating, setIsGenerating] = useState(false)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  
+  // memeSlots가 변경될 때마다 자동으로 짤 생성
+  useEffect(() => {
+    if (memeSlots.length > 0) {
+      generateFinalMeme()
+    }
+  }, [memeSlots])
 
   const generateFinalMeme = async () => {
     if (memeSlots.length === 0) return
@@ -37,28 +41,10 @@ export function FinalMemeGenerator({ memeSlots }: FinalMemeGeneratorProps) {
       const canvas = canvasRef.current!
       const ctx = canvas.getContext('2d')!
       
-      // 캔버스 크기 설정
-      const slotWidth = 300
-      const slotHeight = 400
-      
-      let canvasWidth: number
-      let canvasHeight: number
-      
-      switch (layout) {
-        case 'horizontal':
-          canvasWidth = slotWidth * Math.min(memeSlots.length, 4)
-          canvasHeight = slotHeight
-          break
-        case 'vertical':
-          canvasWidth = slotWidth
-          canvasHeight = slotHeight * Math.min(memeSlots.length, 4)
-          break
-        case 'grid':
-        default:
-          canvasWidth = slotWidth * 2
-          canvasHeight = slotHeight * 2
-          break
-      }
+      // 크롭 영역의 크기를 4배 확대하여 캔버스 크기로 사용
+      const crop = memeSlots[0]?.character.cropArea || { width: 300, height: 400 }
+      const canvasWidth = crop.width * 4
+      const canvasHeight = crop.height * 4
       
       canvas.width = canvasWidth
       canvas.height = canvasHeight
@@ -67,101 +53,122 @@ export function FinalMemeGenerator({ memeSlots }: FinalMemeGeneratorProps) {
       ctx.fillStyle = '#ffffff'
       ctx.fillRect(0, 0, canvasWidth, canvasHeight)
       
-      // 각 슬롯의 이미지를 로드하고 그리기
-      const imagePromises = memeSlots.slice(0, 4).map(async (slot, index) => {
-        return new Promise<void>((resolve, reject) => {
+      // 첫 번째 슬롯의 이미지 로드하고 그리기
+      const slot = memeSlots[0]
+      if (slot) {
+        await new Promise<void>((resolve) => {
           const img = new Image()
-          img.crossOrigin = 'anonymous'
           
-          img.onload = () => {
-            let x: number, y: number
-            
-            switch (layout) {
-              case 'horizontal':
-                x = index * slotWidth
-                y = 0
-                break
-              case 'vertical':
-                x = 0
-                y = index * slotHeight
-                break
-              case 'grid':
-              default:
-                x = (index % 2) * slotWidth
-                y = Math.floor(index / 2) * slotHeight
-                break
+          img.onload = async () => {
+            // 던파 비트비트체 폰트를 직접 로드
+            try {
+              const font = new FontFace('DNFBitBitv2', 'url(//cdn.df.nexon.com/img/common/font/DNFBitBitv2.otf)')
+              await font.load()
+              document.fonts.add(font)
+              console.log('DNFBitBitv2 폰트 로드 성공')
+            } catch (error) {
+              console.log('DNFBitBitv2 폰트 로드 실패:', error)
             }
             
+            // 폰트 로드를 위해 잠시 대기
+            await new Promise(resolve => setTimeout(resolve, 100))
             // 배경색 그리기
             ctx.fillStyle = slot.backgroundColor
-            ctx.fillRect(x, y, slotWidth, slotHeight)
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight)
             
-            // 캐릭터 이미지 그리기
+            // 크롭 영역에서 이미지를 그리기
+            const crop = slot.character.cropArea
+            
+            // 크롭 영역은 이미 300x400 기준이므로 그대로 사용
+            const sourceX = crop.x
+            const sourceY = crop.y
+            const sourceWidth = crop.width
+            const sourceHeight = crop.height
+            
+            // 캔버스에 크롭된 이미지를 4배 확대하여 그리기
             ctx.save()
+            
+            // 픽셀 아트 느낌을 위해 부드러운 렌더링 비활성화
+            ctx.imageSmoothingEnabled = false
+            
+            const scaledWidth = sourceWidth * 4
+            const scaledHeight = sourceHeight * 4
             
             if (slot.character.flipX) {
               ctx.scale(-1, 1)
-              ctx.drawImage(img, -(x + slotWidth), y, slotWidth, slotHeight)
+              ctx.drawImage(
+                img,
+                sourceX, sourceY, sourceWidth, sourceHeight,
+                -scaledWidth, 0, scaledWidth, scaledHeight
+              )
             } else {
-              ctx.drawImage(img, x, y, slotWidth, slotHeight)
+              ctx.drawImage(
+                img,
+                sourceX, sourceY, sourceWidth, sourceHeight,
+                0, 0, scaledWidth, scaledHeight
+              )
             }
             
             ctx.restore()
             
-            // 텍스트 그리기
+            // 도트 스타일 닉네임 그리기 (우측 하단)
             if (slot.character.showName) {
+              console.log('닉네임 표시 중:', slot.character.name, scaledWidth, scaledHeight)
+              
+              // 4배 확대된 캔버스에 맞춘 던파 비트비트체 폰트
               ctx.fillStyle = '#000000'
-              ctx.font = 'bold 16px sans-serif'
-              ctx.textAlign = 'center'
-              ctx.fillText(slot.character.name, x + slotWidth / 2, y + slotHeight - 10)
-            }
-            
-            if (slot.character.showGuild && slot.character.guild) {
-              ctx.fillStyle = '#0066cc'
-              ctx.font = '12px sans-serif'
-              ctx.textAlign = 'center'
-              ctx.fillText(slot.character.guild, x + slotWidth / 2, y + slotHeight - 30)
+              ctx.font = '12px "DNFBitBitv2", "Courier New", "monospace"'  // 폰트 크기 더 줄임
+              ctx.textAlign = 'right'
+              ctx.imageSmoothingEnabled = false
+              
+              // 픽셀화 효과를 위해 작게 그린 후 확대
+              ctx.save()
+              
+              // 픽셀 효과를 위한 추가 스케일링
+              const textScale = 1.5
+              ctx.scale(textScale, textScale)
+              
+              // 4배 확대된 캔버스에 맞춰 위치 조정 (여백 줄임)
+              const pixelX = (scaledWidth - 8) / textScale
+              const pixelY = (scaledHeight - 8) / textScale
+              
+              // 흰색 테두리 효과
+              ctx.strokeStyle = '#FFFFFF'
+              ctx.lineWidth = 3 / textScale
+              ctx.strokeText(slot.character.name, pixelX, pixelY)
+              
+              // 검은색 텍스트
+              ctx.fillText(slot.character.name, pixelX, pixelY)
+              
+              ctx.restore()
             }
             
             resolve()
           }
           
-          img.onerror = () => {
+          img.onerror = (error) => {
             // 이미지 로드 실패시 빈 슬롯으로 처리
-            let x: number, y: number
-            
-            switch (layout) {
-              case 'horizontal':
-                x = index * slotWidth
-                y = 0
-                break
-              case 'vertical':
-                x = 0
-                y = index * slotHeight
-                break
-              case 'grid':
-              default:
-                x = (index % 2) * slotWidth
-                y = Math.floor(index / 2) * slotHeight
-                break
-            }
+            console.error('이미지 로드 실패:', slot.character.customUrl, error)
             
             ctx.fillStyle = slot.backgroundColor
-            ctx.fillRect(x, y, slotWidth, slotHeight)
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight)
             
             ctx.fillStyle = '#666666'
             ctx.font = '14px sans-serif'
             ctx.textAlign = 'center'
-            ctx.fillText('이미지 로드 실패', x + slotWidth / 2, y + slotHeight / 2)
+            ctx.fillText('이미지 로드 실패', canvasWidth / 2, canvasHeight / 2)
+            ctx.fillText(slot.character.customUrl, canvasWidth / 2, canvasHeight / 2 + 20)
             
             resolve()
           }
           
-          img.src = slot.character.customUrl
+          // Next.js 이미지 프록시를 통해 CORS 우회
+          const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(slot.character.customUrl)}`
+          console.log('이미지 로드 시도 (프록시):', proxyUrl)
+          console.log('크롭 정보:', slot.character.cropArea)
+          img.src = proxyUrl
         })
-      })
-      
-      await Promise.all(imagePromises)
+      }
       
     } catch (error) {
       console.error('이미지 생성 중 오류:', error)
@@ -173,7 +180,7 @@ export function FinalMemeGenerator({ memeSlots }: FinalMemeGeneratorProps) {
   const downloadImage = () => {
     const canvas = canvasRef.current!
     const link = document.createElement('a')
-    link.download = `메짤네컷_${new Date().getTime()}.png`
+    link.download = `메짤_${new Date().getTime()}.png`
     link.href = canvas.toDataURL()
     link.click()
   }
@@ -189,46 +196,15 @@ export function FinalMemeGenerator({ memeSlots }: FinalMemeGeneratorProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
-            <label className="block text-sm font-medium mb-2">배열 방식</label>
-            <Select value={layout} onChange={(e) => setLayout(e.target.value)}>
-              {LAYOUT_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </Select>
-          </div>
-          
-          <div className="flex gap-2 items-end">
-            <Button
-              onClick={generateFinalMeme}
-              disabled={!hasSlots || isGenerating}
-              className="min-w-[120px]"
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  생성 중...
-                </>
-              ) : (
-                <>
-                  <ImageIcon className="h-4 w-4 mr-2" />
-                  짤 생성
-                </>
-              )}
-            </Button>
-            
+        <div className="flex justify-center">
             <Button
               onClick={downloadImage}
               variant="outline"
-              disabled={!hasSlots}
+              disabled={!hasSlots || isGenerating}
             >
               <Download className="h-4 w-4 mr-2" />
               다운로드
             </Button>
-          </div>
         </div>
 
         {!hasSlots && (
@@ -239,10 +215,12 @@ export function FinalMemeGenerator({ memeSlots }: FinalMemeGeneratorProps) {
 
         {hasSlots && (
           <div className="space-y-4">
-            <div className="text-sm text-gray-600">
-              {memeSlots.length}개의 슬롯이 준비되었습니다. 
-              {layout === 'grid' && memeSlots.length > 4 && ' (2x2 배열은 최대 4개 슬롯만 사용됩니다)'}
-            </div>
+            {isGenerating && (
+              <div className="text-center text-sm text-blue-600 flex items-center justify-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                짤 생성 중...
+              </div>
+            )}
             
             <div className="border rounded-lg p-4 bg-gray-50">
               <canvas

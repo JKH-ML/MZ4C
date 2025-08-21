@@ -11,16 +11,14 @@ export const ACTIONS = [
 ]
 
 export const EMOTIONS = [
-  { value: 'E00', label: '기본 표정' },
-  { value: 'E01', label: '웃음' },
-  { value: 'E02', label: '찡그림' },
-  { value: 'E03', label: '슬픔' },
-  { value: 'E04', label: '놀람' },
-  { value: 'E05', label: '화남' },
-  { value: 'E06', label: '혼란' },
-  { value: 'E07', label: '당황' },
-  { value: 'E08', label: '좌절' },
-  { value: 'E09', label: '기쁨' },
+  { value: 'E00', label: '기본' },
+  { value: 'E01', label: '윙크' },
+  { value: 'E02', label: '웃음' },
+  { value: 'E03', label: '엉엉' },
+  { value: 'E04', label: '버럭' },
+  { value: 'E05', label: '띠용' },
+  { value: 'E08', label: '쿨쿨' },
+  { value: 'E09', label: '꺄아' },
 ]
 
 export const WMOTIONS = [
@@ -36,18 +34,18 @@ export const WMOTIONS = [
 ]
 
 export const BACKGROUND_COLORS = [
-  { value: '#ffffff', label: '하얀색', preview: '#ffffff' },
-  { value: '#000000', label: '검은색', preview: '#000000' },
-  { value: '#ff0000', label: '빨간색', preview: '#ff0000' },
-  { value: '#00ff00', label: '초록색', preview: '#00ff00' },
-  { value: '#0000ff', label: '파란색', preview: '#0000ff' },
-  { value: '#ffff00', label: '노란색', preview: '#ffff00' },
-  { value: '#ff00ff', label: '분홍색', preview: '#ff00ff' },
-  { value: '#00ffff', label: '하늘색', preview: '#00ffff' },
-  { value: '#f0f0f0', label: '연한 회색', preview: '#f0f0f0' },
-  { value: '#808080', label: '회색', preview: '#808080' },
-  { value: '#ffa500', label: '주황색', preview: '#ffa500' },
-  { value: '#800080', label: '보라색', preview: '#800080' },
+  { value: '#fff5f5', label: '파스텔 핑크', preview: '#fff5f5' },
+  { value: '#f0f9ff', label: '파스텔 블루', preview: '#f0f9ff' },
+  { value: '#f0fff4', label: '파스텔 민트', preview: '#f0fff4' },
+  { value: '#fffacd', label: '파스텔 옐로우', preview: '#fffacd' },
+  { value: '#f5f0ff', label: '파스텔 퍼플', preview: '#f5f0ff' },
+  { value: '#fff0f5', label: '파스텔 로즈', preview: '#fff0f5' },
+  { value: '#f0ffff', label: '파스텔 시안', preview: '#f0ffff' },
+  { value: '#fdf2e9', label: '파스텔 피치', preview: '#fdf2e9' },
+  { value: '#f3e8ff', label: '파스텔 라벤더', preview: '#f3e8ff' },
+  { value: '#ecfdf5', label: '파스텔 그린', preview: '#ecfdf5' },
+  { value: '#fef3c7', label: '파스텔 크림', preview: '#fef3c7' },
+  { value: '#ffffff', label: '화이트', preview: '#ffffff' },
 ]
 
 export const LAYOUT_OPTIONS = [

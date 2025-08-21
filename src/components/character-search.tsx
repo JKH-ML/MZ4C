@@ -47,44 +47,38 @@ export function CharacterSearch({ onCharacterSelect }: CharacterSearchProps) {
   }
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="text-xl">캐릭터 검색</CardTitle>
-        <CardDescription>
-          메이플스토리 캐릭터 닉네임을 입력하세요
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="flex gap-2">
-            <Input
-              type="text"
-              placeholder="캐릭터 닉네임"
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-              onKeyPress={handleKeyPress}
-              disabled={isLoading}
-            />
-            <Button
-              type="submit"
-              disabled={isLoading || !nickname.trim()}
-              size="icon"
-            >
-              {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Search className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
+    <div className="w-full">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="flex gap-2">
+          <Input
+            type="text"
+            placeholder="닉네임"
+            value={nickname}
+            onChange={(e) => setNickname(e.target.value)}
+            onKeyPress={handleKeyPress}
+            disabled={isLoading}
+            className="bg-white"
+            maxLength={6}
+          />
+          <Button
+            type="submit"
+            disabled={isLoading || !nickname.trim()}
+            size="icon"
+          >
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Search className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
 
-          {error && (
-            <div className="text-sm text-red-500 bg-red-50 p-3 rounded-md">
-              {error}
-            </div>
-          )}
-        </form>
-      </CardContent>
-    </Card>
+        {error && (
+          <div className="text-sm text-red-500 bg-red-50 p-3 rounded-md">
+            {error}
+          </div>
+        )}
+      </form>
+    </div>
   )
 }
