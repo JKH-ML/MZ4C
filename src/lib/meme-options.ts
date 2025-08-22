@@ -53,3 +53,111 @@ export const LAYOUT_OPTIONS = [
   { value: 'vertical', label: '세로 배열 (4x1)' },
   { value: 'grid', label: '격자 배열 (2x2)' },
 ]
+
+export const MEME_TEMPLATES = [
+  {
+    id: 'basic',
+    name: '기본 템플릿',
+    backgroundImage: '',
+    texts: [
+      {
+        content: '커플 짤',
+        x: 400,
+        y: 50,
+        fontSize: 32,
+        fontFamily: 'Arial',
+        color: '#000000',
+        align: 'center',
+        strokeColor: '#ffffff',
+        strokeWidth: 2
+      }
+    ]
+  },
+  {
+    id: 'love',
+    name: '러브 템플릿',
+    backgroundImage: '',
+    texts: [
+      {
+        content: '💕 LOVE 💕',
+        x: 400,
+        y: 60,
+        fontSize: 28,
+        fontFamily: 'Arial',
+        color: '#ff69b4',
+        align: 'center',
+        strokeColor: '#ffffff',
+        strokeWidth: 2
+      },
+      {
+        content: '우리 사랑해 💖',
+        x: 400,
+        y: 360,
+        fontSize: 24,
+        fontFamily: 'Arial',
+        color: '#ff1493',
+        align: 'center',
+        strokeColor: '#ffffff',
+        strokeWidth: 2
+      }
+    ]
+  },
+  {
+    id: 'funny',
+    name: '웃긴 템플릿',
+    backgroundImage: '',
+    texts: [
+      {
+        content: '뭐야 이 조합은 ㅋㅋ',
+        x: 400,
+        y: 50,
+        fontSize: 24,
+        fontFamily: 'Arial',
+        color: '#000000',
+        align: 'center',
+        strokeColor: '#ffffff',
+        strokeWidth: 2
+      },
+      {
+        content: '완전 찰떡궁합 👫',
+        x: 400,
+        y: 370,
+        fontSize: 20,
+        fontFamily: 'Arial',
+        color: '#4169e1',
+        align: 'center',
+        strokeColor: '#ffffff',
+        strokeWidth: 2
+      }
+    ]
+  },
+  {
+    id: 'cute',
+    name: '귀여운 템플릿',
+    backgroundImage: '',
+    texts: [
+      {
+        content: '✨ 너무 귀여워 ✨',
+        x: 400,
+        y: 50,
+        fontSize: 26,
+        fontFamily: 'Arial',
+        color: '#ff69b4',
+        align: 'center',
+        strokeColor: '#ffffff',
+        strokeWidth: 2
+      },
+      {
+        content: '우리 케미 최고야 🥰',
+        x: 400,
+        y: 360,
+        fontSize: 22,
+        fontFamily: 'Arial',
+        color: '#ff1493',
+        align: 'center',
+        strokeColor: '#ffffff',
+        strokeWidth: 2
+      }
+    ]
+  }
+]

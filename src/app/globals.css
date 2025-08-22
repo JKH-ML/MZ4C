@@ -10,6 +10,40 @@
   src: url('//cdn.df.nexon.com/img/common/font/DNFBitBitv2.otf') format('opentype');
 }
 
+/* 메이플스토리 폰트 */
+@font-face {
+  font-family: 'Maplestory Light';
+  font-style: normal;
+  font-weight: 300;
+  src: url('/fonts/Maplestory Light.ttf') format('truetype');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Maplestory Bold';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/Maplestory Bold.ttf') format('truetype');
+  font-display: swap;
+}
+
+/* 메이플스토리 폰트 별칭 */
+@font-face {
+  font-family: 'Maplestory';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/Maplestory Light.ttf') format('truetype');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Maplestory';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/Maplestory Bold.ttf') format('truetype');
+  font-display: swap;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
