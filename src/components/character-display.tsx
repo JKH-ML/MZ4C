@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Download } from 'lucide-react'
+import { Download, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, ZoomIn, ZoomOut } from 'lucide-react'
 import type { CharacterData } from '@/lib/maplestory-api'
 
 interface CharacterDisplayProps {
@@ -13,11 +13,9 @@ interface CharacterDisplayProps {
   showFinalMeme?: boolean
 }
 
+
 export function CharacterDisplay({ character, onUpdate, backgroundColor = '#ffffff', showFinalMeme = false }: CharacterDisplayProps) {
   const [imageError, setImageError] = useState(false)
-  const [isDragging, setIsDragging] = useState(false)
-  const [isResizing, setIsResizing] = useState(false)
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
   const [isGenerating, setIsGenerating] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const imageRef = useRef<HTMLImageElement>(null)
@@ -33,6 +31,92 @@ export function CharacterDisplay({ character, onUpdate, backgroundColor = '#ffff
 
   const toggleShowGuild = () => {
     onUpdate({ showGuild: !character.showGuild })
+  }
+
+  const moveCrop = (direction: 'up' | 'down' | 'left' | 'right') => {
+    const step = 5
+    let newX = character.cropArea.x
+    let newY = character.cropArea.y
+
+    switch (direction) {
+      case 'up':
+        newY = Math.max(0, character.cropArea.y - step)
+        break
+      case 'down':
+        newY = Math.min(400 - character.cropArea.height, character.cropArea.y + step)
+        break
+      case 'left':
+        newX = Math.max(0, character.cropArea.x - step)
+        break
+      case 'right':
+        newX = Math.min(300 - character.cropArea.width, character.cropArea.x + step)
+        break
+    }
+
+    onUpdate({
+      cropArea: {
+        ...character.cropArea,
+        x: newX,
+        y: newY
+      }
+    })
+  }
+
+
+  const scaleCrop = (type: 'zoomIn' | 'zoomOut') => {
+    const step = 10
+    const currentWidth = character.cropArea.width
+    const currentHeight = character.cropArea.height
+    const centerX = character.cropArea.x + currentWidth / 2
+    const centerY = character.cropArea.y + currentHeight / 2
+    
+    let newWidth, newHeight
+
+    if (type === 'zoomIn') {
+      // 확대 (크롭 영역이 작아짐)
+      newWidth = Math.max(30, currentWidth - step)
+      newHeight = Math.max(30, currentHeight - step)
+    } else {
+      // 축소 (크롭 영역이 커짐)
+      newWidth = currentWidth + step
+      newHeight = currentHeight + step
+    }
+
+    // 중심점을 유지하면서 새로운 x, y 계산
+    let newX = centerX - newWidth / 2
+    let newY = centerY - newHeight / 2
+
+    // 경계 체크 및 조정
+    if (newX < 0) {
+      newX = 0
+      newWidth = Math.min(newWidth, 300)
+    } else if (newX + newWidth > 300) {
+      newX = 300 - newWidth
+      if (newX < 0) {
+        newX = 0
+        newWidth = 300
+      }
+    }
+
+    if (newY < 0) {
+      newY = 0
+      newHeight = Math.min(newHeight, 400)
+    } else if (newY + newHeight > 400) {
+      newY = 400 - newHeight
+      if (newY < 0) {
+        newY = 0
+        newHeight = 400
+      }
+    }
+
+    onUpdate({
+      cropArea: {
+        x: Math.round(newX),
+        y: Math.round(newY),
+        width: Math.round(newWidth),
+        height: Math.round(newHeight)
+      }
+    })
   }
 
   // 짤 생성 함수
@@ -124,6 +208,7 @@ export function CharacterDisplay({ character, onUpdate, backgroundColor = '#ffff
             
             ctx.restore()
           }
+
           
           resolve()
         }
@@ -170,51 +255,6 @@ export function CharacterDisplay({ character, onUpdate, backgroundColor = '#ffff
     }
   }, [character, backgroundColor, showFinalMeme])
 
-  const handleMouseDown = (e: React.MouseEvent, type: 'drag' | 'resize') => {
-    if (type === 'drag') {
-      setIsDragging(true)
-    } else {
-      setIsResizing(true)
-    }
-    setDragStart({ x: e.clientX, y: e.clientY })
-    e.preventDefault()
-  }
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (isDragging) {
-      const deltaX = e.clientX - dragStart.x
-      const deltaY = e.clientY - dragStart.y
-      onUpdate({
-        cropArea: {
-          ...character.cropArea,
-          x: Math.max(0, Math.min(300 - character.cropArea.width, character.cropArea.x + deltaX)),
-          y: Math.max(0, Math.min(400 - character.cropArea.height, character.cropArea.y + deltaY))
-        }
-      })
-      setDragStart({ x: e.clientX, y: e.clientY })
-    } else if (isResizing) {
-      const deltaX = e.clientX - dragStart.x
-      const deltaY = e.clientY - dragStart.y
-      onUpdate({
-        cropArea: {
-          ...character.cropArea,
-          width: Math.max(50, Math.min(300 - character.cropArea.x, character.cropArea.width + deltaX)),
-          height: Math.max(50, Math.min(400 - character.cropArea.y, character.cropArea.height + deltaY))
-        }
-      })
-      setDragStart({ x: e.clientX, y: e.clientY })
-    }
-  }
-
-  const handleMouseUp = () => {
-    setIsDragging(false)
-    setIsResizing(false)
-  }
-
-  useEffect(() => {
-    document.addEventListener('mouseup', handleMouseUp)
-    return () => document.removeEventListener('mouseup', handleMouseUp)
-  }, [])
 
   return (
     <Card className="w-full">
@@ -238,7 +278,6 @@ export function CharacterDisplay({ character, onUpdate, backgroundColor = '#ffff
                   <div 
                     className="relative select-none"
                     ref={containerRef}
-                    onMouseMove={handleMouseMove}
                     style={{ transform: 'scale(0.93)', transformOrigin: 'center' }}
                   >
                     <img
@@ -251,28 +290,6 @@ export function CharacterDisplay({ character, onUpdate, backgroundColor = '#ffff
                       onError={() => setImageError(true)}
                       style={{ pointerEvents: 'none', display: 'block' }}
                     />
-                    
-                    {/* 크롭 영역 표시 */}
-                    <div
-                      className="absolute border-2 border-blue-500 bg-blue-500 bg-opacity-20"
-                      style={{
-                        left: character.cropArea.x,
-                        top: character.cropArea.y,
-                        width: character.cropArea.width,
-                        height: character.cropArea.height,
-                        cursor: isDragging ? 'grabbing' : 'grab'
-                      }}
-                      onMouseDown={(e) => handleMouseDown(e, 'drag')}
-                    >
-                      {/* 크기 조정 핸들 */}
-                      <div
-                        className="absolute bottom-0 right-0 w-4 h-4 bg-blue-500 cursor-se-resize"
-                        onMouseDown={(e) => {
-                          e.stopPropagation()
-                          handleMouseDown(e, 'resize')
-                        }}
-                      />
-                    </div>
                     
                     {/* 이미지 경계선 */}
                     <div className="absolute inset-0 border-2 border-gray-300 pointer-events-none" />
@@ -288,6 +305,76 @@ export function CharacterDisplay({ character, onUpdate, backgroundColor = '#ffff
                     <div className="text-sm">다른 설정을 시도해보세요</div>
                   </div>
                 )}
+              </div>
+              
+              {/* 크롭 조정 컨트롤 */}
+              <div className="mt-3 space-y-3">
+                {/* 위치 조정 */}
+                <div className="text-center">
+                  <div className="text-xs text-gray-600 mb-1">위치 조정</div>
+                  <div className="flex justify-center items-center space-x-1">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => moveCrop('up')}
+                      className="p-2 h-8 w-8"
+                    >
+                      <ArrowUp className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  <div className="flex justify-center items-center space-x-1 mt-1">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => moveCrop('left')}
+                      className="p-2 h-8 w-8"
+                    >
+                      <ArrowLeft className="h-3 w-3" />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => moveCrop('down')}
+                      className="p-2 h-8 w-8"
+                    >
+                      <ArrowDown className="h-3 w-3" />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => moveCrop('right')}
+                      className="p-2 h-8 w-8"
+                    >
+                      <ArrowRight className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* 확대/축소 */}
+                <div className="text-center">
+                  <div className="text-xs text-gray-600 mb-1">확대/축소</div>
+                  <div className="flex justify-center items-center space-x-2">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => scaleCrop('zoomOut')}
+                      className="p-2 h-8 w-8"
+                      title="축소 (크롭 영역 확대)"
+                    >
+                      <ZoomOut className="h-3 w-3" />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => scaleCrop('zoomIn')}
+                      className="p-2 h-8 w-8"
+                      title="확대 (크롭 영역 축소)"
+                    >
+                      <ZoomIn className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+
               </div>
             </div>
 
@@ -321,58 +408,112 @@ export function CharacterDisplay({ character, onUpdate, backgroundColor = '#ffff
           </div>
         ) : (
           // 기존 단일 이미지 표시
-          <div
-            className="relative min-h-[300px] flex flex-col items-center justify-center p-4 rounded-lg"
-            style={{ backgroundColor }}
-          >
-            {!imageError ? (
-              <div 
-                className="relative select-none"
-                ref={containerRef}
-                onMouseMove={handleMouseMove}
-              >
-                <img
-                  ref={imageRef}
-                  src={`/api/proxy-image?url=${encodeURIComponent(character.customUrl)}`}
-                  alt={character.name}
-                  width={300}
-                  height={400}
-                  className={`transition-transform duration-200 ${character.flipX ? 'scale-x-[-1]' : ''}`}
-                  onError={() => setImageError(true)}
-                  style={{ pointerEvents: 'none', display: 'block' }}
-                />
-                
-                {/* 크롭 영역 표시 */}
-                <div
-                  className="absolute border-2 border-blue-500 bg-blue-500 bg-opacity-20"
-                  style={{
-                    left: character.cropArea.x,
-                    top: character.cropArea.y,
-                    width: character.cropArea.width,
-                    height: character.cropArea.height,
-                    cursor: isDragging ? 'grabbing' : 'grab'
-                  }}
-                  onMouseDown={(e) => handleMouseDown(e, 'drag')}
+          <div className="space-y-4">
+            <div
+              className="relative min-h-[300px] flex flex-col items-center justify-center p-4 rounded-lg"
+              style={{ backgroundColor }}
+            >
+              {!imageError ? (
+                <div 
+                  className="relative select-none"
+                  ref={containerRef}
                 >
-                  {/* 크기 조정 핸들 */}
-                  <div
-                    className="absolute bottom-0 right-0 w-4 h-4 bg-blue-500 cursor-se-resize"
-                    onMouseDown={(e) => {
-                      e.stopPropagation()
-                      handleMouseDown(e, 'resize')
-                    }}
+                  <img
+                    ref={imageRef}
+                    src={`/api/proxy-image?url=${encodeURIComponent(character.customUrl)}`}
+                    alt={character.name}
+                    width={300}
+                    height={400}
+                    className={`transition-transform duration-200 ${character.flipX ? 'scale-x-[-1]' : ''}`}
+                    onError={() => setImageError(true)}
+                    style={{ pointerEvents: 'none', display: 'block' }}
                   />
+                  
+                  {/* 이미지 경계선 */}
+                  <div className="absolute inset-0 border-2 border-gray-300 pointer-events-none" />
+                  
+                  {/* 크롭 정보 표시 (우측 하단) */}
+                  <div className="absolute bottom-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded pointer-events-none">
+                    ({character.cropArea.x}, {character.cropArea.y}) {character.cropArea.width}x{character.cropArea.height}
+                  </div>
                 </div>
-                
-                {/* 이미지 경계선 */}
-                <div className="absolute inset-0 border-2 border-gray-300 pointer-events-none" />
+              ) : (
+                <div className="text-center text-gray-500">
+                  <div className="text-lg mb-2">이미지를 불러올 수 없습니다</div>
+                  <div className="text-sm">다른 설정을 시도해보세요</div>
+                </div>
+              )}
+            </div>
+            
+            {/* 크롭 조정 컨트롤 */}
+            <div className="space-y-3">
+              {/* 위치 조정 */}
+              <div className="text-center">
+                <div className="text-xs text-gray-600 mb-1">위치 조정</div>
+                <div className="flex justify-center items-center space-x-1">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => moveCrop('up')}
+                    className="p-2 h-8 w-8"
+                  >
+                    <ArrowUp className="h-3 w-3" />
+                  </Button>
+                </div>
+                <div className="flex justify-center items-center space-x-1 mt-1">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => moveCrop('left')}
+                    className="p-2 h-8 w-8"
+                  >
+                    <ArrowLeft className="h-3 w-3" />
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => moveCrop('down')}
+                    className="p-2 h-8 w-8"
+                  >
+                    <ArrowDown className="h-3 w-3" />
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => moveCrop('right')}
+                    className="p-2 h-8 w-8"
+                  >
+                    <ArrowRight className="h-3 w-3" />
+                  </Button>
+                </div>
               </div>
-            ) : (
-              <div className="text-center text-gray-500">
-                <div className="text-lg mb-2">이미지를 불러올 수 없습니다</div>
-                <div className="text-sm">다른 설정을 시도해보세요</div>
+
+              {/* 확대/축소 */}
+              <div className="text-center">
+                <div className="text-xs text-gray-600 mb-1">확대/축소</div>
+                <div className="flex justify-center items-center space-x-2">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => scaleCrop('zoomOut')}
+                    className="p-2 h-8 w-8"
+                    title="축소 (크롭 영역 확대)"
+                  >
+                    <ZoomOut className="h-3 w-3" />
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => scaleCrop('zoomIn')}
+                    className="p-2 h-8 w-8"
+                    title="확대 (크롭 영역 축소)"
+                  >
+                    <ZoomIn className="h-3 w-3" />
+                  </Button>
+                </div>
               </div>
-            )}
+
+            </div>
           </div>
         )}
       </CardContent>

@@ -25,24 +25,29 @@ export function MemeGenerator({ character }: MemeGeneratorProps) {
     if (character) {
       const updateSlotWithColorAnalysis = async () => {
         const newSlots = [...memeSlots]
-        let recommendedColor = '#ffffff'
+        const currentSlot = newSlots[selectedSlot]
         
-        // 색상 분석하여 추천 배경색 가져오기
-        try {
-          if (character.customUrl && character.cropArea) {
-            console.log('색상 분석 시작:', character.name, character.customUrl, character.cropArea)
-            const colorAnalysis = await analyzeImageColors(character.customUrl, character.cropArea)
-            recommendedColor = colorAnalysis.recommendedBackground
-            console.log('색상 분석 완료:', character.name, {
-              dominantColors: colorAnalysis.dominantColors,
-              recommendedBackground: colorAnalysis.recommendedBackground
-            })
+        // 이미 슬롯에 캐릭터가 있으면 배경색 유지, 없으면 색상 분석 실행
+        let recommendedColor = currentSlot?.backgroundColor || '#ffffff'
+        
+        // 슬롯이 비어있거나 다른 캐릭터일 때만 색상 분석 수행
+        if (!currentSlot || currentSlot.character.ocid !== character.ocid) {
+          try {
+            if (character.customUrl && character.cropArea) {
+              console.log('색상 분석 시작:', character.name, character.customUrl, character.cropArea)
+              const colorAnalysis = await analyzeImageColors(character.customUrl, character.cropArea)
+              recommendedColor = colorAnalysis.recommendedBackground
+              console.log('색상 분석 완료:', character.name, {
+                dominantColors: colorAnalysis.dominantColors,
+                recommendedBackground: colorAnalysis.recommendedBackground
+              })
+            }
+          } catch (error) {
+            console.log('색상 분석 실패, 기본색 사용:', character.name, error)
           }
-        } catch (error) {
-          console.log('색상 분석 실패, 기본색 사용:', character.name, error)
         }
         
-        // 새로운 캐릭터가 검색되면 현재 선택된 슬롯을 업데이트
+        // 캐릭터 정보 업데이트 (같은 캐릭터의 다른 날짜 외형인 경우 배경색 유지)
         newSlots[selectedSlot] = {
           character: { ...character },
           backgroundColor: recommendedColor

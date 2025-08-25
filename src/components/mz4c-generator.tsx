@@ -3,16 +3,27 @@
 import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Download } from 'lucide-react'
+import { Download, ArrowUpDown, RefreshCw } from 'lucide-react'
 import type { CharacterData } from '@/lib/maplestory-api'
 import { EMOTIONS, BACKGROUND_COLORS } from '@/lib/meme-options'
 
 interface MZ4CGeneratorProps {
   character1: CharacterData | null
   character2: CharacterData | null
+  frameCharacters?: {
+    char1: CharacterData | null,
+    char2: CharacterData | null
+  }[]
 }
 
-export function MZ4CGenerator({ character1, character2 }: MZ4CGeneratorProps) {
+interface FrameSettings {
+  char1Emotion: string
+  char2Emotion: string
+  backgroundColor: string
+  isChar1OnTop: boolean
+}
+
+export function MZ4CGenerator({ character1, character2, frameCharacters }: MZ4CGeneratorProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [frameColor, setFrameColor] = useState('#000000')
@@ -23,6 +34,25 @@ export function MZ4CGenerator({ character1, character2 }: MZ4CGeneratorProps) {
   const [fontSize, setFontSize] = useState(36)
   const [fontFamily, setFontFamily] = useState('Maplestory')
   const [layout, setLayout] = useState<'4x1' | '2x2'>('4x1')
+
+  // 각 프레임별 설정 상태 (랜덤으로 초기화)
+  const [frameSettings, setFrameSettings] = useState<FrameSettings[]>(() => {
+    const getRandomEmotionInit = () => {
+      const randomIndex = Math.floor(Math.random() * EMOTIONS.length)
+      return EMOTIONS[randomIndex].value
+    }
+    const getRandomColorInit = () => {
+      const randomIndex = Math.floor(Math.random() * BACKGROUND_COLORS.length)
+      return BACKGROUND_COLORS[randomIndex].value
+    }
+    
+    return [
+      { char1Emotion: getRandomEmotionInit(), char2Emotion: getRandomEmotionInit(), backgroundColor: getRandomColorInit(), isChar1OnTop: Math.random() > 0.5 },
+      { char1Emotion: getRandomEmotionInit(), char2Emotion: getRandomEmotionInit(), backgroundColor: getRandomColorInit(), isChar1OnTop: Math.random() > 0.5 },
+      { char1Emotion: getRandomEmotionInit(), char2Emotion: getRandomEmotionInit(), backgroundColor: getRandomColorInit(), isChar1OnTop: Math.random() > 0.5 },
+      { char1Emotion: getRandomEmotionInit(), char2Emotion: getRandomEmotionInit(), backgroundColor: getRandomColorInit(), isChar1OnTop: Math.random() > 0.5 }
+    ]
+  })
 
   useEffect(() => {
     // 메이플스토리 폰트 로드 (public/fonts 폴더)
@@ -79,7 +109,7 @@ export function MZ4CGenerator({ character1, character2 }: MZ4CGeneratorProps) {
     if (character1 && character2) {
       generateMZ4C()
     }
-  }, [character1, character2, frameColor, topPadding, bottomPadding, layout])
+  }, [character1, character2, frameColor, topPadding, bottomPadding, layout, frameSettings, frameCharacters])
 
   const getRandomEmotion = () => {
     const randomIndex = Math.floor(Math.random() * EMOTIONS.length)
@@ -118,7 +148,7 @@ export function MZ4CGenerator({ character1, character2 }: MZ4CGeneratorProps) {
   }
 
 
-  const generateCoupleImage = async (char1: CharacterData, char2: CharacterData, backgroundColor: string): Promise<HTMLCanvasElement> => {
+  const generateCoupleImage = async (char1: CharacterData, char2: CharacterData, backgroundColor: string, isChar1OnTop: boolean = true): Promise<HTMLCanvasElement> => {
     const coupleCanvas = document.createElement('canvas')
     const ctx = coupleCanvas.getContext('2d')
     if (!ctx) throw new Error('Canvas context not available')
@@ -138,8 +168,9 @@ export function MZ4CGenerator({ character1, character2 }: MZ4CGeneratorProps) {
     ctx.fillStyle = backgroundColor
     ctx.fillRect(0, 0, canvasWidth, canvasHeight)
 
-    // 캐릭터 1 얼굴 크롭 및 배치
-    if (char1.customUrl && char1.cropArea) {
+    // 캐릭터 그리기 함수들
+    const drawCharacter1 = async () => {
+      if (char1.customUrl && char1.cropArea) {
       const emotion = char1.emotion || 'E00'
       const characterUrl = char1.customUrl.replace(/emotion=[^&]*/, `emotion=${emotion}`)
       
@@ -208,10 +239,11 @@ export function MZ4CGenerator({ character1, character2 }: MZ4CGeneratorProps) {
         )
       }
       ctx.restore()
+      }
     }
 
-    // 캐릭터 2 얼굴 크롭 및 배치
-    if (char2.customUrl && char2.cropArea) {
+    const drawCharacter2 = async () => {
+      if (char2.customUrl && char2.cropArea) {
       const emotion = char2.emotion || 'E00'
       const characterUrl = char2.customUrl.replace(/emotion=[^&]*/, `emotion=${emotion}`)
       
@@ -267,6 +299,16 @@ export function MZ4CGenerator({ character1, character2 }: MZ4CGeneratorProps) {
         )
       }
       ctx.restore()
+      }
+    }
+
+    // 순서에 따라 캐릭터 그리기
+    if (isChar1OnTop) {
+      await drawCharacter2() // 아래쪽에 먼저 그리기
+      await drawCharacter1() // 위쪽에 나중에 그리기
+    } else {
+      await drawCharacter1() // 아래쪽에 먼저 그리기
+      await drawCharacter2() // 위쪽에 나중에 그리기
     }
 
     // 닉네임 표시 제거
@@ -286,22 +328,30 @@ export function MZ4CGenerator({ character1, character2 }: MZ4CGeneratorProps) {
     }
 
     try {
-      // Couple 이미지 4장 생성 (각각 다른 랜덤 표정)
-      const couple1Char1 = { ...character1, emotion: getRandomEmotion() }
-      const couple1Char2 = { ...character2, emotion: getRandomEmotion() }
-      const couple1 = await generateCoupleImage(couple1Char1, couple1Char2, getRandomColor())
+      // Couple 이미지 4장 생성 (frameCharacters가 있으면 사용, 없으면 기본 캐릭터 사용)
+      const getCharacterForFrame = (frameIndex: number, isChar1: boolean) => {
+        if (frameCharacters && frameCharacters[frameIndex]) {
+          const frameChar = isChar1 ? frameCharacters[frameIndex].char1 : frameCharacters[frameIndex].char2
+          if (frameChar) return frameChar
+        }
+        return isChar1 ? character1 : character2
+      }
+
+      const couple1Char1 = { ...getCharacterForFrame(0, true), emotion: frameSettings[0].char1Emotion }
+      const couple1Char2 = { ...getCharacterForFrame(0, false), emotion: frameSettings[0].char2Emotion }
+      const couple1 = await generateCoupleImage(couple1Char1, couple1Char2, frameSettings[0].backgroundColor, frameSettings[0].isChar1OnTop)
       
-      const couple2Char1 = { ...character1, emotion: getRandomEmotion() }
-      const couple2Char2 = { ...character2, emotion: getRandomEmotion() }
-      const couple2 = await generateCoupleImage(couple2Char1, couple2Char2, getRandomColor())
+      const couple2Char1 = { ...getCharacterForFrame(1, true), emotion: frameSettings[1].char1Emotion }
+      const couple2Char2 = { ...getCharacterForFrame(1, false), emotion: frameSettings[1].char2Emotion }
+      const couple2 = await generateCoupleImage(couple2Char1, couple2Char2, frameSettings[1].backgroundColor, frameSettings[1].isChar1OnTop)
 
-      const couple3Char1 = { ...character1, emotion: getRandomEmotion() }
-      const couple3Char2 = { ...character2, emotion: getRandomEmotion() }
-      const couple3 = await generateCoupleImage(couple3Char1, couple3Char2, getRandomColor())
+      const couple3Char1 = { ...getCharacterForFrame(2, true), emotion: frameSettings[2].char1Emotion }
+      const couple3Char2 = { ...getCharacterForFrame(2, false), emotion: frameSettings[2].char2Emotion }
+      const couple3 = await generateCoupleImage(couple3Char1, couple3Char2, frameSettings[2].backgroundColor, frameSettings[2].isChar1OnTop)
 
-      const couple4Char1 = { ...character1, emotion: getRandomEmotion() }
-      const couple4Char2 = { ...character2, emotion: getRandomEmotion() }
-      const couple4 = await generateCoupleImage(couple4Char1, couple4Char2, getRandomColor())
+      const couple4Char1 = { ...getCharacterForFrame(3, true), emotion: frameSettings[3].char1Emotion }
+      const couple4Char2 = { ...getCharacterForFrame(3, false), emotion: frameSettings[3].char2Emotion }
+      const couple4 = await generateCoupleImage(couple4Char1, couple4Char2, frameSettings[3].backgroundColor, frameSettings[3].isChar1OnTop)
 
       // 간격과 여백 설정
       const gap = 15  // 이미지 사이 간격
@@ -660,6 +710,149 @@ export function MZ4CGenerator({ character1, character2 }: MZ4CGeneratorProps) {
                 </button>
               </div>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 4장 각각의 커스터마이징 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <span>🖼️</span>
+            사진별 커스터마이징
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {frameSettings.map((settings, index) => (
+              <div key={index} className="border rounded-lg p-4 bg-gray-50">
+                <div className="flex justify-between items-center mb-3">
+                  <h4 className="font-medium text-sm">{index + 1}번째 사진</h4>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      const newSettings = [...frameSettings]
+                      newSettings[index] = {
+                        char1Emotion: getRandomEmotion(),
+                        char2Emotion: getRandomEmotion(),
+                        backgroundColor: getRandomColor(),
+                        isChar1OnTop: Math.random() > 0.5
+                      }
+                      setFrameSettings(newSettings)
+                    }}
+                    className="text-xs"
+                  >
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    랜덤
+                  </Button>
+                </div>
+
+                {/* 배경색 */}
+                <div className="mb-3">
+                  <label className="block text-xs font-medium mb-1">배경색</label>
+                  <div className="flex gap-1 items-center flex-wrap">
+                    {BACKGROUND_COLORS.slice(0, 6).map((color) => (
+                      <button
+                        key={color.value}
+                        onClick={() => {
+                          const newSettings = [...frameSettings]
+                          newSettings[index].backgroundColor = color.value
+                          setFrameSettings(newSettings)
+                        }}
+                        className={`w-5 h-5 rounded border transition-all ${
+                          settings.backgroundColor === color.value
+                            ? 'border-purple-500 ring-1 ring-purple-300'
+                            : 'border-gray-300 hover:border-gray-500'
+                        }`}
+                        style={{ backgroundColor: color.preview }}
+                        title={color.label}
+                      />
+                    ))}
+                    <input
+                      type="color"
+                      value={settings.backgroundColor}
+                      onChange={(e) => {
+                        const newSettings = [...frameSettings]
+                        newSettings[index].backgroundColor = e.target.value
+                        setFrameSettings(newSettings)
+                      }}
+                      className="w-5 h-5 rounded border border-gray-300 cursor-pointer"
+                      title="사용자 정의 색상"
+                    />
+                  </div>
+                </div>
+
+                {/* 겹치기 순서 */}
+                <div className="mb-3">
+                  <label className="block text-xs font-medium mb-1">겹치기 순서</label>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      const newSettings = [...frameSettings]
+                      newSettings[index].isChar1OnTop = !newSettings[index].isChar1OnTop
+                      setFrameSettings(newSettings)
+                    }}
+                    className="text-xs h-8 px-2"
+                  >
+                    <ArrowUpDown className="h-3 w-3 mr-1" />
+                    {settings.isChar1OnTop ? `${character1.name} 위` : `${character2.name} 위`}
+                  </Button>
+                </div>
+
+                {/* 표정 설정 */}
+                <div className="space-y-2">
+                  <div>
+                    <label className="block text-xs font-medium mb-1">{character1.name} 표정</label>
+                    <div className="flex gap-1 flex-wrap">
+                      {EMOTIONS.slice(0, 6).map((emotion) => (
+                        <button
+                          key={emotion.value}
+                          onClick={() => {
+                            const newSettings = [...frameSettings]
+                            newSettings[index].char1Emotion = emotion.value
+                            setFrameSettings(newSettings)
+                          }}
+                          className={`px-1.5 py-0.5 text-xs rounded border transition-all ${
+                            settings.char1Emotion === emotion.value 
+                              ? 'bg-purple-500 text-white border-purple-500' 
+                              : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                          }`}
+                          title={emotion.label}
+                        >
+                          {emotion.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium mb-1">{character2.name} 표정</label>
+                    <div className="flex gap-1 flex-wrap">
+                      {EMOTIONS.slice(0, 6).map((emotion) => (
+                        <button
+                          key={emotion.value}
+                          onClick={() => {
+                            const newSettings = [...frameSettings]
+                            newSettings[index].char2Emotion = emotion.value
+                            setFrameSettings(newSettings)
+                          }}
+                          className={`px-1.5 py-0.5 text-xs rounded border transition-all ${
+                            settings.char2Emotion === emotion.value 
+                              ? 'bg-purple-500 text-white border-purple-500' 
+                              : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                          }`}
+                          title={emotion.label}
+                        >
+                          {emotion.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>

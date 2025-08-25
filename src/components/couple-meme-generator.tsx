@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Download } from 'lucide-react'
+import { Download, ArrowUpDown } from 'lucide-react'
 import type { CharacterData } from '@/lib/maplestory-api'
 import { MEME_TEMPLATES, EMOTIONS, BACKGROUND_COLORS } from '@/lib/meme-options'
 
@@ -20,6 +20,7 @@ export function CoupleMemeGenerator({ character1, character2, onCharacter1Update
   const selectedTemplate = 'basic'
   const [backgroundColor, setBackgroundColor] = useState('#f0f9ff')
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isChar1OnTop, setIsChar1OnTop] = useState(true) // 캐릭터1이 위에 있는지 여부
 
   // 랜덤 배경색 설정
   useEffect(() => {
@@ -32,7 +33,7 @@ export function CoupleMemeGenerator({ character1, character2, onCharacter1Update
     if (character1 && character2 && selectedTemplate && !externalIsDragging) {
       generateCoupleMeme()
     }
-  }, [character1, character2, selectedTemplate, backgroundColor, character1?.emotion, character2?.emotion, character1?.showName, character2?.showName, externalIsDragging])
+  }, [character1, character2, selectedTemplate, backgroundColor, character1?.emotion, character2?.emotion, character1?.showName, character2?.showName, externalIsDragging, isChar1OnTop])
 
   const generateCoupleMeme = async () => {
     console.log('Generating couple meme...', { 
@@ -98,8 +99,9 @@ export function CoupleMemeGenerator({ character1, character2, onCharacter1Update
       let char1XPos = 0, char1YPos = 0, char1Width = 0, char1Height = 0
       let char2XPos = 0, char2YPos = 0, char2Width = 0, char2Height = 0
 
-      // 캐릭터 1 얼굴 크롭 및 배치
-      if (character1.customUrl && character1.cropArea) {
+      // 캐릭터 그리기 함수들
+      const drawCharacter1 = async () => {
+        if (character1.customUrl && character1.cropArea) {
         // 표정을 적용한 URL 생성
         const emotion = character1.emotion || 'E00'
         const characterUrl = character1.customUrl.replace(/emotion=[^&]*/, `emotion=${emotion}`)
@@ -194,10 +196,11 @@ export function CoupleMemeGenerator({ character1, character2, onCharacter1Update
           console.log('Character1 drawn (normal)')
         }
         ctx.restore()
+        }
       }
 
-      // 캐릭터 2 얼굴 크롭 및 배치
-      if (character2.customUrl && character2.cropArea) {
+      const drawCharacter2 = async () => {
+        if (character2.customUrl && character2.cropArea) {
         // 표정을 적용한 URL 생성
         const emotion = character2.emotion || 'E00'
         const characterUrl = character2.customUrl.replace(/emotion=[^&]*/, `emotion=${emotion}`)
@@ -276,6 +279,16 @@ export function CoupleMemeGenerator({ character1, character2, onCharacter1Update
           console.log('Character2 drawn (normal)')
         }
         ctx.restore()
+        }
+      }
+
+      // 순서에 따라 캐릭터 그리기
+      if (isChar1OnTop) {
+        await drawCharacter2() // 아래쪽에 먼저 그리기
+        await drawCharacter1() // 위쪽에 나중에 그리기
+      } else {
+        await drawCharacter1() // 아래쪽에 먼저 그리기
+        await drawCharacter2() // 위쪽에 나중에 그리기
       }
 
       // 닉네임 표시 (캐릭터 1 - 왼쪽 아래 구석)
@@ -396,6 +409,20 @@ export function CoupleMemeGenerator({ character1, character2, onCharacter1Update
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* 캐릭터 순서 */}
+          <div>
+            <label className="block text-sm font-medium mb-2">캐릭터 겹치기 순서</label>
+            <Button
+              onClick={() => setIsChar1OnTop(!isChar1OnTop)}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <ArrowUpDown className="h-4 w-4" />
+              {isChar1OnTop ? `${character1.name} 위, ${character2.name} 아래` : `${character2.name} 위, ${character1.name} 아래`}
+            </Button>
+          </div>
+
           {/* 배경색 선택 */}
           <div>
             <label className="block text-sm font-medium mb-2">배경색</label>

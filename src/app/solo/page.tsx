@@ -2,13 +2,25 @@
 
 import { useState } from 'react'
 import { CharacterSearch } from '@/components/character-search'
+import { CharacterHistory } from '@/components/character-history'
 import { MemeGenerator } from '@/components/meme-generator'
 import { ContactFooter } from '@/components/contact-footer'
-import type { CharacterData } from '@/lib/maplestory-api'
+import type { CharacterData, CharacterHistoryData } from '@/lib/maplestory-api'
 import Link from 'next/link'
 
 export default function SoloPage() {
   const [character, setCharacter] = useState<CharacterData | null>(null)
+  const [selectedDate, setSelectedDate] = useState<string | undefined>(undefined)
+
+  const handleCharacterSelect = (characterData: CharacterData) => {
+    setCharacter(characterData)
+    setSelectedDate(undefined) // 새 캐릭터 선택 시 날짜 초기화
+  }
+
+  const handleDateSelect = (historyData: CharacterHistoryData) => {
+    setCharacter(historyData.characterData)
+    setSelectedDate(historyData.date)
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
@@ -27,9 +39,20 @@ export default function SoloPage() {
             <p className="text-gray-600 mt-2">혼자찍기 모드</p>
           </div>
           <div className="w-48">
-            <CharacterSearch onCharacterSelect={setCharacter} />
+            <CharacterSearch onCharacterSelect={handleCharacterSelect} />
           </div>
         </div>
+
+        {/* 캐릭터 히스토리 */}
+        {character && (
+          <div className="mb-6">
+            <CharacterHistory 
+              nickname={character.name} 
+              onDateSelect={handleDateSelect}
+              selectedDate={selectedDate}
+            />
+          </div>
+        )}
 
         {/* 메인 콘텐츠 */}
         <div className="w-full">
